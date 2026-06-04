@@ -4,14 +4,19 @@
 
 - Esp32-C3 super mini
 - Sensor DHT22
+- Raspberry Pi 4 8GB
+- Cartão de memória 128GB
 
 # Ferramentas utilizadas
 
 - Arduino IDE
+- Raspberry Pi Imager
 
 # Bibliotecas utilizadas
 
 - DHT sensor library
+- PubSubClient
+- ArduinoJson
 
 # Conectando o Arduino IDE ao Esp32
 
@@ -111,3 +116,68 @@
     }
     ```
     - Clique no botão de seta para a direita(Carregar/Upload) no topo da IDE
+# Montando o servidor
+ 
+- Montando o raspberry pi
+    - Baixe o Raspberry Pi Imager
+    - Conecte o cartão de memória no computador (OBS: ele será formatado)
+    - Instale o Raspberry Pi OS Lite no cartão de memória utilizando o Raspberry Pi Imager (ative a opção SSH durante a instalação)
+
+
+
+    Instalar o docker
+   # 1. Atualiza a lista de pacotes do sistema
+sudo apt update && sudo apt upgrade -y
+
+# 2. Baixa o script oficial de instalação do Docker
+curl -fsSL https://get.docker.com -o get-docker.sh
+
+# 3. Executa o script para instalar o Docker Core
+sudo sh get-docker.sh
+
+# 4. Instala o plugin do Docker Compose (necessário para ler o arquivo docker-compose.yml)
+sudo apt install docker-compose-plugin -y
+
+sudo usermod -aG docker marvin
+
+newgrp docker
+
+
+criar pasta nodered
+criar o arquivo docker-compose.yml
+
+YAML
+
+services:
+  mosquitto:
+    image: eclipse-mosquitto:latest
+    container_name: broker_teste
+    ports:
+      - "1883:1883"
+    volumes:
+      - mosquitto_data:/mosquitto/data
+      - ./mosquitto.conf:/mosquitto/config/mosquitto.conf
+    restart: unless-stopped
+
+  nodered:
+    image: nodered/node-red:latest
+    container_name: nodered_teste
+    ports:
+      - "1880:1880"
+    volumes:
+      - nodered_data:/data
+    restart: unless-stopped
+
+volumes:
+  mosquitto_data:
+  nodered_data:
+
+
+criar o arquivo mosquitto.conf
+
+listener 1883 0.0.0.0
+allow_anonymous true
+persistence true
+persistence_location /mosquitto/data/
+
+docker compose up
