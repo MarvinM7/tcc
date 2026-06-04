@@ -181,3 +181,116 @@ persistence true
 persistence_location /mosquitto/data/
 
 docker compose up
+
+
+🧩 Passo 1: Construindo o Fluxo no Node-RED
+No Node-RED (que você acessa pelo navegador digitando http://192.168.1.135:1880), vamos montar uma sequência simples com 3 nós para capturar, tratar e visualizar esse JSON:
+
+Nó mqtt in (Entrada):
+
+Arraste o nó mqtt in (fica na paleta de rede/network) para o fluxo.
+
+Dê dois cliques nele para configurar.
+
+Em Server, clique no ícone de lápis para adicionar um novo broker:
+
+Name: Mosquitto Local
+
+Server: 192.168.1.135
+
+Port: 1883
+
+Clique em Add.
+
+De volta à tela do nó, preencha o Topic exatamente como no código: quarto-dht22.
+
+Output: Deixe configurado como a String (ou auto-detect).
+
+Clique em Done.
+
+Nó json (Função/Parser):
+
+Seu ESP32 envia os dados empacotados como uma String de texto em formato JSON. O Node-RED precisa converter isso em um Objeto JavaScript manipulável.
+
+Arraste o nó json (paleta parser) e conecte a saída do nó mqtt in na entrada dele. Ele faz a conversão de String para Objeto de forma automática.
+
+Nó debug (Visualização):
+
+Arraste o nó debug (paleta common, com o nome de msg.payload).
+
+Conecte a saída do nó json na entrada do nó debug.
+
+🚀 Passo 2: Validando o Recebimento dos Dados
+Clique no botão vermelho Deploy no canto superior direito do Node-RED para ativar o fluxo.
+
+Se a configuração com o Mosquitto estiver correta (e com as permissões de allow_anonymous true aplicadas no Raspberry Pi), você verá uma pequena etiqueta verde escrito "connected" logo abaixo do nó mqtt in.
+
+Abra a aba de debug lateral (ícone de uma barata/inseto no canto direito).
+
+Assim que o ESP32 rodar o loop() e publicar, você verá a estrutura printada na tela do Node-RED a cada 5 segundos assim:
+
+
+🛠️ Passo 1: Instalar a Paleta do Dashboard 2.0
+Se você ainda não tem os nós de gráfico instalados no seu Node-RED:
+
+Abra o Node-RED no navegador (http://192.168.1.135:1880).
+
+Clique no Menu (três linhas horizontais no canto superior direito) e selecione Manage palette (Gerenciar paleta).
+
+Vá até a aba Install.
+
+Digite na busca: @flowfuse/node-red-dashboard
+
+Clique no botão Install ao lado dele e confirme. Uma nova coleção de nós azuis chamados "Dashboard" vai aparecer na sua barra lateral esquerda.
+
+🧩 Passo 2: Estruturando o Fluxo (Mapeando o JSON)
+Como o ESP32 envia um único objeto JSON contendo todas as variáveis, nós precisamos "separar" esses valores para que cada gráfico receba apenas o seu respectivo número.
+
+O fluxo completo vai ficar assim:
+
+Nó mqtt in: Configurado no tópico quarto-dht22 e apontando para o seu container do Mosquitto.
+
+Nó json: Conectado na saída do MQTT para transformar o texto em objeto.
+
+Nós change (Os Separadores): Arraste três nós do tipo Change (paleta function) para separar os dados:
+
+Change 1 (Temperatura): Renomeie para "Filtra Temp" e configure para: Set msg.payload to msg.payload.temperatura
+
+Change 2 (Umidade): Renomeie para "Filtra Umid" e configure para: Set msg.payload to msg.payload.umidade
+
+Change 3 (Heap Livre): Renomeie para "Filtra Heap" e configure para: Set msg.payload to msg.payload.heap_livre
+
+Conecte a saída do único nó json na entrada dos três nós change ao mesmo tempo.
+
+📊 Passo 3: Adicionando os Componentes Visuais
+Agora vamos ligar as saídas dos nós change nos componentes gráficos correspondentes:
+
+Para a Temperatura (Gauge / Ponteiro):
+
+Arraste um nó ui-gauge e conecte-o na saída do Change 1.
+
+Dê dois cliques nele. Na primeira vez, ele vai pedir para criar um Group (Grupo) e uma Page (Página). Clique em adicionar de forma automática (pode chamar a página de "Home" e o grupo de "Quarto").
+
+Configure o Label para Temperatura, o Min para 0 e o Max para 50. Mude as cores para verde/amarelo/vermelho se quiser.
+
+Para a Umidade (Chart / Gráfico de Linha):
+
+Arraste um nó ui-chart e conecte-o na saída do Change 2.
+
+Configure o Group para o mesmo grupo "Quarto".
+
+Mude o Label para Histórico de Umidade, o tipo para Line Chart e defina para guardar os dados das últimas 1 ou 2 horas.
+
+Para o Heap Livre (Text / Informação Pura):
+
+Arraste um nó ui-text e conecte-o na saída do Change 3.
+
+Configure o Label para Memória RAM Livre (Bytes) e no campo Value deixe {{msg.payload}}. Isso vai exibir o número bruto para o seu monitoramento do TCC.
+
+🚀 Passo 4: Dar o Deploy e Acessar a Interface
+Clique no botão vermelho Deploy no canto superior direito do Node-RED.
+
+Para abrir o seu painel bonito e limpo, abra uma nova aba no seu navegador e digite o IP do seu Raspberry seguido de /dashboard:
+
+Plaintext
+http://192.168.1.135:1880/dashboard
