@@ -3,13 +3,12 @@
 #include <ArduinoJson.h>
 #include <DHT.h>
 
-const char* ssid = "MVT_RENATA_2.4";
-const char* password = "68764495";
+const char* ssid = "";
+const char* password = "";
 
-const char* mqtt_server = "192.168.1.135";
+const char* mqtt_server = "";
 const int mqtt_port = 1883;
-const char* mqtt_topic = "quarto-dht22";
-//const char* mqtt_topic = "escritorio-dht22";
+const char* mqtt_topic = "";
 
 #define DHTPIN 5
 #define DHTTYPE DHT22

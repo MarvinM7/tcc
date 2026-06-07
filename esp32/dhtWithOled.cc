@@ -7,13 +7,13 @@
 #include <Adafruit_SSD1306.h>
 
 // --- Configurações do Wi-Fi ---
-const char* ssid = "MVT_RENATA_2.4";
-const char* password = "68764495";
+const char* ssid = "";
+const char* password = "";
 
 // --- Configurações do MQTT ---
-const char* mqtt_server = "192.168.1.135";
+const char* mqtt_server = "";
 const int mqtt_port = 1883;
-const char* mqtt_topic = "escritorio-dht22";
+const char* mqtt_topic = "";
 
 // --- Configuração da posição inicial do display ---
 const int offsetY = 0;

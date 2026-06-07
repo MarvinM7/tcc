@@ -47,21 +47,9 @@
     - Vá em Ferramentas > USB CDC On Boot > Enabled
 
 - Testando a placa com o blink
-    - Cole o código abaixo no Arduino IDE:
-    ```c++
-    // O LED nativo da maioria das placas ESP32 está no pino 8
-    #define LED_PIN 8
-
-    void setup() {
-        pinMode(LED_PIN, OUTPUT);
-    }
-
-    void loop() {
-        digitalWrite(LED_PIN, HIGH); // Liga o LED
-        delay(1000);                 // Aguarda 1 segundo
-        digitalWrite(LED_PIN, LOW);  // Desliga o LED
-        delay(1000);                 // Aguarda 1 segundo
-    }
+    - Cole o código do link abaixo no Arduino IDE:
+    ```
+    https://github.com/MarvinM7/tcc/blob/main/esp32/blinkTest.cc
     ```
     - Clique no botão de seta para a direita (Carregar/Upload) no topo da IDE
 
@@ -74,57 +62,26 @@
 
 - Testando o sensor (versão sem display) *OBS: na versão com display trocar o DHTPIN 5 por DHTPIN 3 
     - Cole o código abaixo na sua IDE:
-    ```c++
-    #include "DHT.h"
-
-    #define DHTPIN 5
-
-    #define DHTTYPE DHT22
-
-    DHT dht(DHTPIN, DHTTYPE);
-
-    unsigned long lastTime = 0;
-
-    const unsigned long INTERVAL = 5000;
-
-    void setup() {
-        Serial.begin(115200);
-
-        while (!Serial) {
-            delay(10);
-        }
-
-        pinMode(DHTPIN, INPUT_PULLUP);
-        dht.begin();
-    }
-
-    void loop() {
-        unsigned long now = millis();
-
-        if (now - lastTime >= INTERVAL) {
-            lastTime = now; 
-
-            float umidade = dht.readHumidity(true);
-            float temperatura = dht.readTemperature(false, true);
-
-            if (isnan(umidade) || isnan(temperatura)) {
-            Serial.println(F("[Aviso] Falha de comunicação. Tentando novamente em breve..."));
-            lastTime = now - (INTERVAL - 100);
-            return;
-            }
-
-            Serial.print(F("Umidade: "));
-            Serial.print(umidade, 1);
-            Serial.print(F("%  |  Temperatura: "));
-            Serial.print(temperatura, 1);
-            Serial.println(F("°C"));
-
-            Serial.flush(); 
-        }
-    }
+    ```
+    https://github.com/MarvinM7/tcc/blob/main/esp32/sensorTest.cc
     ```
     - Clique no botão de seta para a direita(Carregar/Upload) no topo da IDE
     - Veja o log no Serial Monitor do Arduino IDE 
+- Adicionando a versão final do arquivo no esp32
+    - Cole o código abaixo na sua IDE:
+        - Versão com display OLED
+        ```
+        https://github.com/MarvinM7/tcc/blob/main/esp32/dhtWithOled.cc
+        ```
+        - Versão sem display
+        ```
+        https://github.com/MarvinM7/tcc/blob/main/esp32/dhtWithoutPrint.cc
+        ```
+    - Preencha os seguintes campos:
+        - ssid: nome da rede Wi-Fi
+        - password: senha da rede Wi-Fi
+        - mqtt_server: ip do raspberry pi
+        - mqtt_topic: identificador do esp32 (esse mesmo identificador vai ser necessário na configuração do dashboard)
 # Montando o servidor
  
 - Montando o raspberry pi
@@ -161,37 +118,12 @@
 - Instalar o node-red
     - Criar a pasta nodered
     - Acessar a pasta nodered e criar o arquivo docker-compose.yml
-    ```Yaml
-    services:
-        mosquitto:
-            image: eclipse-mosquitto:latest
-            container_name: broker_teste
-            ports:
-            - "1883:1883"
-            volumes:
-            - mosquitto_data:/mosquitto/data
-            - ./mosquitto.conf:/mosquitto/config/mosquitto.conf
-            restart: unless-stopped
-
-        nodered:
-            image: nodered/node-red:latest
-            container_name: nodered_teste
-            ports:
-            - "1880:1880"
-            volumes:
-            - nodered_data:/data
-            restart: unless-stopped
-
-    volumes:
-        mosquitto_data:
-        nodered_data:
+    ```
+    https://github.com/MarvinM7/tcc/blob/main/nodered/docker-compose.yml
     ```
     - Criar o arquivo mosquitto.conf
     ```
-    listener 1883 0.0.0.0
-    allow_anonymous true
-    persistence true
-    persistence_location /mosquitto/data/
+    https://github.com/MarvinM7/tcc/blob/main/nodered/mosquitto.conf
     ```
     - Criar e iniciar o container
     ```
@@ -240,51 +172,12 @@
         ```
 # Gerando relatório
 - Criar o arquivo get_stats.sh
-```sh
-#!/bin/bash
-LOG_FILE="/caminho/para/docker_stats.log"
-
-# Formato: Data Hora | Nome | CPU% | Mem%
-docker stats --no-stream --format "{{.Name}} {{.CPUPerc}} {{.MemPerc}}" | while read -r line; do
-    echo "$(date '+%Y-%m-%d %H:%M:%S') $line" >> "$LOG_FILE"
-done
+```
+https://github.com/MarvinM7/tcc/blob/main/log/get_stats.sh
 ```
 - Criar o arquivo generate_report.sh
-```sh
-#!/bin/bash
-LOG_FILE="/caminho/para/docker_stats.log"
-RELATORIO_DIR="/caminho/para/pasta/relatorios"
-DATA_ATUAL=$(date '+%Y-%m-%d')
-ARQUIVO_FINAL="$RELATORIO_DIR/relatorio_$DATA_ATUAL.txt"
-
-if [ ! -f "$LOG_FILE" ] || [ ! -s "$LOG_FILE" ]; then
-    echo "Nenhum dado coletado para o relat  rio."
-    exit 1
-fi
-
-echo "==================================================" > "$ARQUIVO_FINAL"
-echo "  RELATARIO DIARIO DE CONSUMO DOCKER - $DATA_ATUAL" >> "$ARQUIVO_FINAL"
-echo "==================================================" >> "$ARQUIVO_FINAL"
-printf "%-25s %-15s %-15s\n" "Container" "Media CPU" "Media memoria" >> "$ARQUIVO_FINAL"
-echo "--------------------------------------------------" >> "$ARQUIVO_FINAL"
-
-# Processa o log eliminando o caractere '%' para fazer o calculo
-cat "$LOG_FILE" | sed 's/%//g' | awk '{
-    container=$3; cpu=$4; mem=$5;
-    sum_cpu[container]+=cpu;
-    sum_mem[container]+=mem;
-    count[container]++;
-}
-END {
-    for (c in sum_cpu) {
-        printf "%-25s %-14.2f%% %-14.2f%%\n", c, sum_cpu[c]/count[c], sum_mem[c]/count[c]
-    }
-}' >> "$ARQUIVO_FINAL"
-
-echo "==================================================" >> "$ARQUIVO_FINAL"
-
-# Limpa o arquivo de logs
-> "$LOG_FILE"
+```
+https://github.com/MarvinM7/tcc/blob/main/report/generate_report.sh
 ```
 - Configutar a execução dos scripts
     - Rodar crontab -e
