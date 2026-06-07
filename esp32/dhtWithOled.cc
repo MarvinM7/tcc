@@ -10,10 +10,16 @@
 const char* ssid = "";
 const char* password = "";
 
-// --- Configurações do MQTT ---
-const char* mqtt_server = "";
-const int mqtt_port = 1883;
-const char* mqtt_topic = "";
+// --- Configurações do Node-RED / Mosquitto ---
+const char* nr_server = "";
+const int nr_port = 1883;
+const char* nr_topic = "";
+
+// --- Configurações do ThingsBoard ---
+const char* tb_server = "";
+const int tb_port = 1884;
+const char* tb_token = "";
+const char* tb_topic = "v1/devices/me/telemetry";
 
 // --- Configuração da posição inicial do display ---
 const int offsetY = 0;
@@ -22,7 +28,6 @@ const int offsetX = 28;
 const int breakOneLineSize1 = 11;
 const int breakTwoLinesSize1 = breakOneLineSize1 * 2;
 const int breakOneLineSize2 = 17;
-
 
 // --- Configurações do Sensor DHT22 ---
 #define DHTPIN 3
@@ -77,18 +82,33 @@ void setup_wifi() {
   delay(1000);
 }
 
-void reconnect() {
-  while (!client.connected()) {
-    showOnDisplay("MQTT", "Conectando...", "");
-    String clientId = "ESP32-MarvinTCC-" + String(random(0, 1000));
-    
-    if (client.connect(clientId.c_str())) {
-      showOnDisplay("MQTT", "Conectado!", "");
-      delay(500);
-    } else {
-      showOnDisplay("MQTT", "Erro", "rc=" + String(client.state()));
-      delay(5000);
-    }
+// Função dedicada para enviar ao Mosquitto (Node-RED)
+void sendToNodeRed(char* jsonBuffer) {
+  client.setServer(nr_server, nr_port);
+  
+  String clientId = "ESP32-NodeRed-" + String(random(0, 1000));
+  
+  if (client.connect(clientId.c_str())) {
+    client.publish(nr_topic, jsonBuffer);
+    client.disconnect();
+  } else {
+    showOnDisplay("NodeRed", "Erro", "rc=" + String(client.state()));
+    delay(1000);
+  }
+}
+
+// Função dedicada para enviar ao ThingsBoard
+void sendToThingsBoard(char* jsonBuffer) {
+  client.setServer(tb_server, tb_port);
+  
+  String clientId = "ESP32-ThingsBoard";
+  
+  if (client.connect(clientId.c_str(), tb_token, NULL)) {
+    client.publish(tb_topic, jsonBuffer);
+    client.disconnect();
+  } else {
+    showOnDisplay("ThingsBoard", "Erro", "rc=" + String(client.state()));
+    delay(1000);
   }
 }
 
@@ -121,16 +141,15 @@ void setup() {
   }
 
   setup_wifi();
-  client.setServer(mqtt_server, mqtt_port);
   
   dht.begin();
 }
 
 void loop() {
-  if (!client.connected()) {
-    reconnect();
+  // Mantém o Wi-Fi vivo se cair
+  if (WiFi.status() != WL_CONNECTED) {
+    setup_wifi();
   }
-  client.loop();
 
   unsigned long now = millis();
   if (now - lastMsg > delayInterval) {
@@ -144,24 +163,25 @@ void loop() {
       return;
     }
 
-    display.clearDisplay(); // Limpa display
-    display.setTextSize(2); // Tamanho da fonte
-    
+    // Atualiza a tela local com os dados do sensor
+    display.clearDisplay(); 
+    display.setTextSize(2); 
     display.setCursor(offsetX, offsetY);
     display.printf("T:%.1fC\n", temperature);
     display.setCursor(offsetX, offsetY + 17);
     display.printf("U:%.1f%%\n", humidity);
     display.display();
 
-    // Envio do JSON via MQTT
-    StaticJsonDocument<200> doc;
-    doc["temperatura"] = temperature;
-    doc["umidade"] = humidity;
+    // Montagem do JSON
+    StaticJsonDocument<256> doc;
+    doc["temperature"] = temperature;
+    doc["humidity"] = humidity;
     doc["heap_livre"] = ESP.getFreeHeap();
-
     char buffer[256];
     serializeJson(doc, buffer);
 
-    client.publish(mqtt_topic, buffer);
+    // Envia sequencialmente para os dois barramentos isolados
+    sendToNodeRed(buffer);
+    sendToThingsBoard(buffer);
   }
 }
