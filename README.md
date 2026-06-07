@@ -5,7 +5,7 @@
 - Esp32-C3 super mini
 - Esp32-C3 super mini com display OLED 0.42
 - Sensor DHT22
-- Raspberry Pi 4 8GB
+- Raspberry Pi 4 4GB
 - Cartão de memória 128GB
 
 # Ferramentas utilizadas
@@ -170,6 +170,45 @@
         ```
         http://IP_RASPBERRY:1880/dashboard
         ```
+- Instalar o ThingsBoard
+    - Criar a pasta thingsboard
+    - Acessar a pasta thingsboard e criar o arquivo docker-compose.yml
+    ```
+    https://github.com/MarvinM7/tcc/blob/main/thingsboard/docker-compose.yml
+    ```
+    - Criar e iniciar o container
+    ```
+    docker compose up
+    ```
+    OBS: é necessário garantir que as pastas ./tb-data ./tb-logs tenham permissão total de escrita e que pertençam ao usuário atual. Para isso, rode os comandos:
+    ```
+    sudo chown -R 799:799 ./tb-data ./tb-logs
+    sudo chmod -R 777 ./tb-data ./tb-logs
+    ```
+    O processo de criação e inicialização do ThingsBoard costuma demorar um pouco.
+- Configurar o ThingsBoard
+    - Abra o ThingsBoard no navegador
+    ```
+    http://192.168.1.135:9090
+    ```
+    - Logue com o perfil de configuração
+    ```
+    Usuário: tenant@thingsboard.org
+    Senha: tenant
+    ```
+    - No menu esquerdo, vá em Entidades > Dispositivos
+    - Clique no botão + e depois em Adicionar Novo Dispositivo
+        - Nome: preencha o nome com um de sua escolha
+        - Device profile: mantenha default
+    - Clique em Adicionar
+    - Feche a janela que aparecer
+    - Na lista de dispositivos, clique no penúltimo ícone (Gerenciar credenciais) do dispositivo que foi criado
+    - Copie o token de acesso exibido na tela (é necessário no arquivo do Esp32 para realizar a conexão)
+    - No menu esquerdo, vá em Dashboards
+    - Clique no botão + e depois em Criar novo dashboard
+        - Nome: preencha o nome com um de sua escolha
+    - Clique em Adicionar
+    - Clique em Adicionar novo widget e escolha o tipo que serve para seu objetivo
 # Gerando relatório
 - Criar o arquivo get_stats.sh
 ```
@@ -185,4 +224,18 @@ https://github.com/MarvinM7/tcc/blob/main/report/generate_report.sh
     ```
     */1 * * * * /caminho/para/get_stats.sh
     55 23 * * * /caminho/para/generate_report.sh
+    ```
+- Caso o uso de memória apareca como 0, é necessário ativar os contadores de memória do cgroups.
+    - Rodar o comando
+    ```
+    sudo nano /boot/cmdline.txt
+    ```
+    - Adicionar a linha abaixo ao final da linha do arquivo. OBS: Não pode ter quebra de linha no arquivo, precisa ser linha única
+    ```
+    cgroup_enable=cpuset cgroup_enable=memory swapaccount=1
+    ```
+    - Salvar o arquivo
+    - Reiniciar a máquina
+    ```
+    sudo reboot
     ```
