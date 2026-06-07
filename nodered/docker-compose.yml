@@ -1,0 +1,23 @@
+services:
+  mosquitto:
+    image: eclipse-mosquitto:latest
+    container_name: broker_teste
+    ports:
+    - "1883:1883"
+    volumes:
+    - mosquitto_data:/mosquitto/data
+    - ./mosquitto.conf:/mosquitto/config/mosquitto.conf
+    restart: unless-stopped
+
+  nodered:
+    image: nodered/node-red:latest
+    container_name: nodered_teste
+    ports:
+    - "1880:1880"
+    volumes:
+    - nodered_data:/data
+    restart: unless-stopped
+
+volumes:
+  mosquitto_data:
+  nodered_data:
