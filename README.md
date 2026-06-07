@@ -47,7 +47,7 @@
     - Vá em Ferramentas > USB CDC On Boot > Enabled
 
 - Testando a placa com o blink
-    - Cole o código abaixo na sua IDE:
+    - Cole o código abaixo no Arduino IDE:
     ```c++
     // O LED nativo da maioria das placas ESP32 está no pino 8
     #define LED_PIN 8
