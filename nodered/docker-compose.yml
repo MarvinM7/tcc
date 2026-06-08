@@ -18,6 +18,16 @@ services:
     - nodered_data:/data
     restart: unless-stopped
 
+    influxdb:
+    image: influxdb:1.8
+    container_name: influxdb_teste
+    ports:
+      - "8086:8086"
+    volumes:
+      - influxdb_data:/var/lib/influxdb
+    restart: unless-stopped
+
 volumes:
   mosquitto_data:
   nodered_data:
+  influxdb_data:

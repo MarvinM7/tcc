@@ -129,6 +129,10 @@
     ```
     docker compose up
     ```
+    - Criar o banco de dados
+    ```
+    docker exec -it influxdb_teste influx -execute "CREATE DATABASE tcc_sensores"
+    ```
 
 - Configurar o Node-RED
     - Acessar o endereço de um computador na mesma máquina que o raspberry pi
@@ -137,9 +141,14 @@
     ```
     - Instalar o @flowfuse/node-red-dashboard
         - Clique no Menu (três linhas horizontais no canto superior direito) e selecione Manage palette (Gerenciar paleta).
-        - Ir até a aba Install.
+        - Ir até a aba Instalar.
         - Digitar na busca: @flowfuse/node-red-dashboard
-        - Clicar no botão Install ao lado dele. Uma nova coleção de nós azuis chamados "Dashboard" vai aparecer na sua barra lateral esquerda.
+        - Clicar no botão Instalar ao lado dele. Uma nova coleção de nós chamados "Dashboard" vai aparecer na sua barra lateral esquerda.
+    - Instalar o node-red-contrib-influxdb
+        - Clique no Menu (três linhas horizontais no canto superior direito) e selecione Manage palette (Gerenciar paleta).
+        - Ir até a aba Instalar.
+        - Digitar na busca: @flowfuse/node-red-dashboard
+        - Clicar no botão Instalar ao lado dele. Uma nova coleção de nós vai aparecer na sua barra lateral esquerda em "Armazenar".
     - Configurar a entrada da informação recebida
         - Arrastar o nó mqtt in para a área da tela (para cada esp32 instalado, será adicionado 1 nó do tipo mqtt in)
         - Dê 2 cliques nele para configurar
